@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Skills — My CS Skills</title>
+<style>
+  :root { --accent: #406B99; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f7f7f8; color: #1a1a1a;
+  }
+  header {
+    background: var(--accent); color: white; padding: 24px 20px 20px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; font-size: 14px; opacity: 0.9; }
+
+  .controls {
+    background: white; padding: 16px 20px; border-bottom: 1px solid #e0e0e0;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  #search {
+    flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 8px;
+    font-size: 15px;
+  }
+  .expand-btn {
+    padding: 10px 14px; border: 1px solid #ccc; border-radius: 8px; background: white;
+    font-size: 13px; cursor: pointer; white-space: nowrap;
+  }
+  .filter-group { margin-bottom: 10px; }
+  .filter-label { font-size: 12px; color: #666; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    padding: 6px 12px; border-radius: 999px; border: 1.5px solid #ccc; background: white;
+    font-size: 13px; cursor: pointer; user-select: none; transition: all 0.15s; font-weight: 600;
+  }
+  .pill.cat-pill { border-color: var(--pill-color, #ccc); color: var(--pill-color, #555); }
+  .pill.cat-pill.active { background: var(--pill-color, #ccc); color: white; }
+  .pill.goal-pill { border-color: #bbb; color: #555; }
+  .pill.goal-pill.active { background: var(--pill-color, #eee); border-color: #999; color: #1a1a1a; }
+  .group-select { margin-top: 10px; }
+  .group-select select {
+    padding: 8px 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 13px;
+  }
+
+  main { padding: 16px 20px 60px; max-width: 800px; margin: 0 auto; }
+  .section-header {
+    font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+    text-transform: uppercase; padding: 10px 14px; border-radius: 8px; margin: 22px 0 12px;
+  }
+  .section-header.cat-header { color: white; }
+  .section-header.goal-header { color: #1a1a1a; border: 1px solid #ccc; }
+  .skill-card {
+    background: white; border-radius: 10px; margin-bottom: 14px; overflow: hidden;
+    border-left: 5px solid #ccc; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .skill-header {
+    padding: 14px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .skill-name { font-weight: 700; font-size: 16px; }
+  .skill-tags { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #eee; color: #555; }
+  .chevron { font-size: 13px; color: #888; transition: transform 0.2s; flex-shrink: 0; }
+  .skill-card.expanded .chevron { transform: rotate(90deg); }
+  .skill-body { padding: 0 16px 16px; display: none; }
+  .skill-card.expanded .skill-body { display: block; }
+  .level-block { margin-bottom: 14px; }
+  .level-label { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .level-text { font-size: 14.5px; line-height: 1.5; margin-bottom: 6px; }
+  .subpart-toggle {
+    font-size: 12px; color: var(--accent); cursor: pointer; user-select: none; font-weight: 600;
+    display: inline-block; margin-bottom: 6px;
+  }
+  .subparts { display: none; margin: 6px 0 0; padding-left: 18px; }
+  .subparts.shown { display: block; }
+  .subparts li { font-size: 13.5px; line-height: 1.5; margin-bottom: 5px; color: #333; }
+  .path-block { margin-bottom: 8px; }
+  .path-label { font-size: 12.5px; font-weight: 700; color: #555; margin-bottom: 3px; }
+  .part-block { margin-bottom: 10px; }
+  .part-label { font-weight: 700; }
+  .cond-label { font-weight: 700; color: #555; }
+  #empty-msg { text-align: center; color: #888; padding: 40px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CS Skills — My CS Skills</h1>
+  <p>Search or filter to find a skill. Tap a level to see it broken into smaller pieces.</p>
+</header>
+
+<div class="controls">
+  <div class="search-row">
+    <input id="search" type="text" placeholder="Search skills...">
+    <button class="expand-btn" id="expandAll">Expand all</button>
+    <button class="expand-btn" id="collapseAll">Collapse all</button>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">Category</div>
+    <div class="pills" id="catPills"></div>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">Goal</div>
+    <div class="pills" id="goalPills"></div>
+  </div>
+  <div class="group-select">
+    <label class="filter-label" for="groupBy">Group by</label><br>
+    <select id="groupBy">
+      <option value="category">Category</option>
+      <option value="goal">Goal</option>
+      <option value="alpha">Alphabetical</option>
+    </select>
+  </div>
+</div>
+
+<main id="main"></main>
+
+<script>
+const VOICE = "Student";
+const SKILLS = [
+  {
+    "id": "writing-code",
+    "name": "Writing Code",
+    "color": "#7D5F99",
+    "category": "Implementation",
+    "goal": "Foundational",
+    "l1": {
+      "text": "I write code that follows and builds on patterns my teacher has shown me, formatted to class standards, to correctly solve the problem I've been given, and I can explain what my code does and how I adapted the demonstrated approach to fit it.",
+      "type": "all",
+      "subparts": [
+        "I adapt a demonstrated approach to fit my specific problem, rather than applying it unchanged where it doesn't fit",
+        "My code is formatted to the class's established standards (naming, indentation, structure conventions)",
+        "My solution actually solves the given problem correctly and completely, not just superficially resembling a working solution",
+        "I can explain what my code does and how I adapted the demonstrated approach to fit the problem"
+      ]
+    },
+    "l2": {
+      "text": "I use established practices to build code that goes beyond simply iterating on patterns I've already seen, while correctly solving the problem, and I can justify choosing one working approach over another based on efficiency, clarity, or another clearly articulated trade-off, not just correctness. I can thoroughly explain any code I write.",
+      "type": "all",
+      "subparts": [
+        "I combine or extend known constructs and techniques in a new way to solve a problem that doesn't match a pattern I've seen before — rather than modifying a seen example to fit",
+        "My solution solves the problem correctly",
+        "When more than one working approach exists, I choose between them based on efficiency, clarity, or another clearly articulated trade-off — not just correctness — and I can say why",
+        "I can explain the function and reasoning behind any specific part of my code my teacher points to — not just the parts I chose to highlight when presenting"
+      ]
+    }
+  },
+  {
+    "id": "collaboration",
+    "name": "Collaboration",
+    "color": "#5EAB49",
+    "category": "Disposition",
+    "goal": "Deliberate",
+    "l1": {
+      "text": "I actively contribute during live pair and group work, give specific feedback that reflects real understanding of my partner's work, and appropriately engage with feedback I receive — whether by applying it or by explaining why it doesn't apply.",
+      "type": "all",
+      "subparts": [
+        "I contribute to the group's actual work, beyond just being present",
+        "I leave genuine room for other members to contribute, and I can describe how I do that",
+        "I give specific, constructive feedback to peers — about the technical work, the collaboration itself, or both",
+        "I engage appropriately with feedback I receive from a peer about my work or collaboration — either applying it or explaining why it doesn't apply"
+      ]
+    },
+    "l2": {
+      "text": "I can point to a specific instance in live pair or group work where I changed how the work was organized, divided, or approached, based on what the situation or the group needed; and I can point to a specific instance of making a meaningful change to my own approach or work in response to feedback received from a peer — in each case explaining what I noticed or heard, and what I changed.",
+      "type": "all",
+      "subparts": [
+        "I can point to a specific instance where I changed how work was organized, divided, or approached in a live pair/group setting — not a change in how I explained something to a partner",
+        "I can explain what I noticed about the collaboration itself (not about the content or a partner's understanding) that prompted the change",
+        "I can point to a specific instance of making a meaningful change to my own approach or work, based on feedback received from a peer",
+        "I can explain what the feedback was and specifically what I changed as a result — not just that I considered it"
+      ]
+    }
+  },
+  {
+    "id": "testing-code",
+    "name": "Testing Code",
+    "color": "#7D5F99",
+    "category": "Implementation",
+    "goal": "Verified",
+    "l1": {
+      "text": "I identify what my code is supposed to do and can name the difference between expected and actual behavior; I check the major paths through my program under normal, expected use, and can say clearly why each passes or fails.",
+      "type": "all",
+      "subparts": [
+        "I identify what my code is supposed to do (the expected behavior)",
+        "I check my code against each distinct base case or path the program is meant to handle under normal, expected use",
+        "I can name the difference between expected and actual behavior when there is one",
+        "I can clearly explain why each check passes or fails"
+      ]
+    },
+    "l2": {
+      "text": "I design a collection of checks that anticipates where my code is likely to fail before I run into those issues by accident, and I can explain why that collection, taken together, covers the range of potential issues that might show up in my work.",
+      "type": "all",
+      "subparts": [
+        "I write checks for edge cases, boundary values, or error conditions — not just the \"happy path\" — before hitting a bug that reveals the need for them",
+        "I can name the categories of potential failure in my work (e.g., edge cases, invalid input, boundary conditions) and explain how my checks address each category, rather than testing more of the same kind of case repeatedly"
+      ]
+    }
+  },
+  {
+    "id": "edo",
+    "name": "Experimental Design and Observation",
+    "color": "#B24242",
+    "category": "Discovery",
+    "goal": "Verified",
+    "l1": {
+      "text": "I interpret the results of a structured experiment or error message, drawing a basic conclusion about what's happening in my code.",
+      "type": "all",
+      "subparts": [
+        "I can interpret what an error message or a given experiment's result indicates about my code's behavior",
+        "I actively work through a guided experimental process myself to better my understanding",
+        "I draw a conclusion that reasonably follows from what I observed"
+      ]
+    },
+    "l2": {
+      "text": "I independently form a real question about what's happening in my own code, design an investigation to answer it, and update my understanding — using what one round of investigation reveals to shape the next.",
+      "type": "all",
+      "subparts": [
+        "I independently form a real, specific question about what's happening — not prompted by an experiment or structure already given to me",
+        "I design an investigation (experiment, test, or comparison) to answer that question",
+        "I draw a conclusion that follows from what I observed",
+        "I use what one round of investigation revealed to shape the next round, rather than stopping at the first result"
+      ]
+    }
+  },
+  {
+    "id": "cosc",
+    "name": "Citizenship in the OSS Community",
+    "color": "#5EAB49",
+    "category": "Disposition",
+    "goal": "Maintainable",
+    "l1": {
+      "type": "multipart",
+      "parts": [
+        {
+          "label": "Producing",
+          "text": "I write documentation such that a classmate could read it and understand what my work does and how, without asking me.",
+          "subparts": [
+            "I clearly state what the program does, in a way a classmate could follow without needing to look at the code",
+            "I clearly explain how to use it or how it works, in a way a classmate could follow without needing to look at the code"
+          ]
+        },
+        {
+          "label": "Consuming",
+          "text": "I use external code, a library, other sourced material, or cited literature correctly, attribute it appropriately, and can explain both its function and the reasoning behind using it.",
+          "subparts": [
+            "I correctly incorporate the sourced material so it functions as intended within my own work",
+            "I attribute the source according to expected convention (citation, credit, or reference)",
+            "I can explain, in my own words, what the sourced material actually does or claims — specific enough that someone else could understand its function or point without needing to look it up themselves",
+            "I can explain what using this material let me do that I couldn't have done as easily on my own — not just \"it worked\" or \"it seemed relevant\""
+          ]
+        }
+      ]
+    },
+    "l2": {
+      "type": "multipart",
+      "parts": [
+        {
+          "label": "Producing",
+          "text": "My documentation stays useful even after the current context is gone — I'm not reachable, dependencies have changed, or assumptions no longer hold — because I've explicitly captured the reasoning behind my decisions, known limitations, and likely points of future breakage.",
+          "subparts": [
+            "I document the why behind a decision, not just the what — reasoning that won't be obvious once the current context (me, dependency versions, assumptions) is gone",
+            "I flag known limitations or likely points of future breakage, rather than only describing the code as it works today"
+          ]
+        },
+        {
+          "label": "Consuming",
+          "text": "When more than one viable resource exists for a given task — code, a library, other sourced material, or literature — I weigh the options against each other and justify the one I chose.",
+          "subparts": [
+            "I compare more than one viable option before choosing",
+            "I can justify why my chosen option is the best fit, compared to the alternatives I considered"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "refactoring-code",
+    "name": "(Re)Factoring Code",
+    "color": "#7D5F99",
+    "category": "Implementation",
+    "goal": "Maintainable",
+    "l1": {
+      "text": "I reorganize code to resolve a straightforward complexity, duplication, or readability problem, without changing what the code does; I can explain how the new structure improves on the previous one.",
+      "type": "all",
+      "subparts": [
+        "I can point to a specific instance of duplicated logic, a misleading or unclear name, or tangled/deeply nested conditional logic in my own code — beyond a vague sense that \"this could be cleaner\"",
+        "I can identify and make the change to remove the problem I found",
+        "Running the code before and after the change produces the same results for the same inputs",
+        "I can explain specifically why the new version is meaningfully easier to read, extend, or maintain than the old one — pointing to the actual change, not just asserting the result is better"
+      ]
+    },
+    "l2": {
+      "text": "I independently identify structural weaknesses whose impact goes beyond straightforward readability (extensibility, modularity, or abstraction/encapsulation) and can explain why that impact justified restructuring; I restructure accordingly — reorganizing or rebuilding — preserving the original behavior and carrying forward what the previous version got right.",
+      "type": "all",
+      "subparts": [
+        "I can point to a specific place in my own code where adding a plausible new feature would require changes in multiple, disconnected parts, or where the same concept is represented inconsistently across the codebase — identified without it being pointed out to me",
+        "The specific weakness I just identified is actually resolved — e.g., the plausible new feature named above could now be added by changing one place instead of several",
+        "Running the code before and after produces the same results for the same inputs, and design choices that were already working well elsewhere are left intact rather than swept into the rewrite",
+        "I can describe a specific future scenario (a plausible new feature, a likely change) that would have been harder or riskier under the old structure, and explain concretely why it's easier now"
+      ]
+    }
+  },
+  {
+    "id": "writing",
+    "name": "Writing",
+    "color": "#5AA1A5",
+    "category": "Interface",
+    "goal": "Maintainable",
+    "l1": {
+      "text": "I clearly and accurately explain my work — matching what I actually built — including my reasoning, its real limitations, and how to use it or what it does functionally, so it stands on its own without needing direct access to what I built.",
+      "type": "all",
+      "subparts": [
+        "I describe my work in a way that matches what I actually built — not what I planned, and not glossing over parts that didn't work as intended",
+        "I explain why I made specific choices, not just what those choices were",
+        "I name at least one specific condition or case where my solution doesn't work or falls short — not a generic disclaimer like \"this might have bugs\"",
+        "A reader could follow my explanation to understand what my work actually does and how to use it, step by step",
+        "A reader who has never seen my code could understand my explanation using only what's written, without needing to ask me"
+      ]
+    },
+    "l2": {
+      "text": "I write with clarity and deliberate structure. I anticipate a reader's likely confusion and address it up front; I revise my own writing in response to feedback in a way that meaningfully improves it; and I can offer substantive critique on a peer's similar writing — identifying gaps, confusions, or unaddressed limitations in their explanation.",
+      "type": "all",
+      "subparts": [
+        "I write clearly and in a well-organized way, so a reader can easily follow along and find specific information when they need it",
+        "I anticipate a reader's likely confusion and address it up front, unprompted",
+        "I revise my own writing in response to feedback, in a way that meaningfully improves clarity or addresses a gap — not just surface wording changes",
+        "I offer substantive critique on a peer's writing (identify real gaps, confusions, or unaddressed limitations — not just surface feedback)"
+      ]
+    }
+  },
+  {
+    "id": "speaking-in-translations",
+    "name": "Speaking in Translations",
+    "color": "#5AA1A5",
+    "category": "Interface",
+    "goal": "Deliberate",
+    "l1": {
+      "text": "I actively gauge what my listener already knows, adjust my complexity and vocabulary accordingly, recognize when they're confused or not following, and adapt in the moment to fix it.",
+      "type": "all",
+      "subparts": [
+        "I actively gauge what my listener already knows or cares about — asking, checking their reaction, or reading context — rather than assuming a fixed level going in",
+        "I use an appropriate level of vocabulary, analogies, or examples matched to what that gauge revealed, rather than one fixed explanation for everyone",
+        "I notice concrete signs my listener isn't following — confusion on their face, a wrong restatement back, a question that reveals a gap",
+        "I respond to that by rephrasing, offering a different example, or checking in directly — rather than repeating the same explanation or moving on"
+      ]
+    },
+    "l2": {
+      "text": "I tailor my explanations to different audiences, creating and adapting versions that are genuinely distinct from one another, and I can explain the choices I made to avoid confusion I anticipated or to respond to confusion in the moment.",
+      "type": "all",
+      "subparts": [
+        "I create versions of an explanation for different audiences that are genuinely distinct from one another — not the same explanation with minor wording swaps",
+        "Each version fits its intended audience",
+        "I can explain the specific choices I made in a version, tied to confusion I anticipated for that audience"
+      ]
+    }
+  },
+  {
+    "id": "intentional-design",
+    "name": "Intentional Design",
+    "color": "#CA6A32",
+    "category": "Structure",
+    "goal": "Deliberate",
+    "l1": {
+      "text": "I identify a real, specific audience or stakeholder for my work, translate their need or problem into functional requirements, and design with their needs and context in mind.",
+      "type": "all",
+      "subparts": [
+        "I identify a real, specific audience or stakeholder for my work",
+        "I translate a stated need or problem into concrete functional requirements (what my solution must actually do)",
+        "I can point to several specific design choices shaped by those functional requirements and made with the audience's assumed needs or context in mind"
+      ]
+    },
+    "l2": {
+      "text": "I go beyond assumption to gather input directly from my audience or stakeholder, explicitly design for accessibility across that audience, and can point to a specific way that input changed my design; I reflect on how well my final work actually met the audience's needs.",
+      "type": "all",
+      "subparts": [
+        "I gather input directly from my audience/stakeholder, beyond assumption",
+        "I can point to a specific way that input changed my design",
+        "I explicitly design for accessibility across the full audience (not just the typical or easiest-to-reach member of it)",
+        "I reflect on how well my final work actually met the audience's needs — including where it fell short"
+      ]
+    }
+  },
+  {
+    "id": "questioning-impact",
+    "name": "Questioning Impact",
+    "color": "#B24242",
+    "category": "Discovery",
+    "goal": "Deliberate",
+    "l1": {
+      "text": "I identify specific groups who could be affected by a piece of work or technology, consider plausible ways it could help or harm them, and consider whose perspective isn't reflected in it.",
+      "type": "all",
+      "subparts": [
+        "I can name at least one specific group (not \"society\" or \"people in general\") who would use, benefit from, or be excluded/harmed by a piece of work or technology (my own, or one I'm examining)",
+        "For that group, I describe a specific benefit or harm that's plausible based on that group's actual characteristics — not a vague \"it could be good or bad\"",
+        "I can name a perspective or group whose input isn't reflected in the work as it stands, and explain why their perspective would matter here"
+      ]
+    },
+    "l2": {
+      "text": "I seek out firsthand perspective on my work's potential impact, actively invite missing voices into my process, and can identify and address a harmful aspect of my own work based on what I learn.",
+      "type": "all",
+      "subparts": [
+        "I have a conversation, interview, or exchange with someone affected by my work, or an expert on its consequences — or, if that's not possible, I look at credible written sources — rather than just imagining their perspective",
+        "I change who is actually present in my design process as a direct result — bringing in someone who wasn't part of it before, not just resolving to consider them",
+        "I can point to a specific concerning aspect of my own work and concretely explain how it impacts others",
+        "I make a specific change to my own work in response"
+      ]
+    }
+  },
+  {
+    "id": "tooling",
+    "name": "Tooling",
+    "color": "#5AA1A5",
+    "category": "Interface",
+    "goal": "Verified",
+    "l1": {
+      "text": "I recognize whether my setup and workflow fit the task, adjust it to fit when it doesn't, and can explain my reasoning either way.",
+      "type": "conditional",
+      "subparts": [
+        {
+          "label": null,
+          "text": "I recognize whether my current setup and workflow actually fit the task at hand"
+        },
+        {
+          "label": "If it fits:",
+          "text": "I can explain why this setup/workflow is a good match for the task"
+        },
+        {
+          "label": "If it doesn't fit:",
+          "text": "I adjust it, and can explain what didn't fit and why the adjustment is a better match"
+        }
+      ]
+    },
+    "l2": {
+      "text": "I engage with the deeper capabilities of a tool or workflow, rather than its most surface-level use, in a way that makes my work meaningfully more effective.",
+      "type": "all",
+      "subparts": [
+        "I seek out and use a tool or workflow's real capabilities rather than its most basic function (e.g., debugging with breakpoints and variable inspection rather than running until an error and reading the stack trace; automating a repetitive task rather than repeating it manually)",
+        "I can explain what a more surface-level approach would have missed or cost me, compared to this deeper engagement"
+      ]
+    }
+  },
+  {
+    "id": "designing-systems",
+    "name": "Designing Systems",
+    "color": "#CA6A32",
+    "category": "Structure",
+    "goal": "Maintainable",
+    "l1": {
+      "text": "I create an organized structure for my solution — its parts and how those parts connect to and rely on each other — grounded in reasoning about why this structure fits the problem; and I can make that plan legible to someone else.",
+      "type": "all",
+      "subparts": [
+        "I create an organized plan naming my solution's parts, and for each part, what it tracks or holds and what it does (its function)",
+        "For each connection between parts, I identify what one part needs from another before it can do its job (a dependency, a shared piece of information, or a required order or sequence)",
+        "I can point to a specific feature of this problem that justifies the structure I chose — not just \"it seemed like a reasonable way to organize it\"",
+        "I produce a diagram, table, or walkthrough that someone who didn't build it could use to understand how the parts fit together"
+      ]
+    },
+    "l2": {
+      "text": "I create an organized structure for my specific solution with anticipated future change or reuse in mind, weigh more than one structural approach before choosing, and can explain the choices I made about how the parts connect.",
+      "type": "all",
+      "subparts": [
+        "I can justify why my chosen structure fits the solution well",
+        "I can name a specific plausible future change (a new feature, a new data source, swapping one part out) and explain how my current structure makes that change easier than an alternative structure would",
+        "I can describe at least one alternative structure I considered and rejected, and the specific reason my chosen structure won out",
+        "For a specific connection between two parts, I can explain how much one part depends on the internal details of the other — would changing one likely force a change to the other? — and why that amount of dependency was the right call for this connection"
+      ]
+    }
+  },
+  {
+    "id": "understanding-systems",
+    "name": "Understanding Systems",
+    "color": "#CA6A32",
+    "category": "Structure",
+    "goal": "Foundational",
+    "l1": {
+      "type": "multipart",
+      "parts": [
+        {
+          "label": "Decomposition",
+          "text": "I identify the main parts of a system I didn't create and the foundational relationships between them.",
+          "subparts": [
+            "The system is complex enough that breaking it down takes real analysis, not something obvious at a glance",
+            "I identify the main parts of the system",
+            "I identify the foundational relationships between the main parts — the core connections that explain how the parts work together"
+          ]
+        },
+        {
+          "label": "Systemic Thinking",
+          "text": "I recognize when an issue or effect reflects how parts of a system depend on or affect one another — upstream or downstream — and can trace or explain that relationship.",
+          "subparts": [
+            "I recognize when an issue reflects a systemic dependency, rather than treating it as an isolated incident",
+            "I can trace or explain the specific relationship — whether tracing a downstream effect to its upstream cause, or an upstream change to its downstream consequence"
+          ]
+        }
+      ]
+    },
+    "l2": {
+      "type": "multipart",
+      "parts": [
+        {
+          "label": "Decomposition",
+          "text": "I break down a system, or defined scope of a system, that I did not build into its parts and relationships completely and accurately, including connections that aren't immediately obvious.",
+          "subparts": [
+            "I identify all parts of the system or subsystem, not just the most visible ones",
+            "I identify relationships between parts that aren't immediately obvious, not just the direct/visible ones"
+          ]
+        },
+        {
+          "label": "Systemic Thinking",
+          "text": "I can point to specific instances in my own process where I predicted a downstream effect of a change, or where I recognized that a situation called for looking at the current system as a single piece of a larger system and acted accordingly.",
+          "subparts": [
+            "I have a specific, documented instance of predicting a downstream effect of a change before testing/confirming it, and can explain the reasoning behind that prediction",
+            "I have a specific, documented instance of a situation where viewing a system as part of a larger system led me to a better course of action, and I can explain the reasoning behind it"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "exploration-research",
+    "name": "Exploration and Research",
+    "color": "#B24242",
+    "category": "Discovery",
+    "goal": "Foundational",
+    "l1": {
+      "text": "I seek out information beyond what was provided and connect it to the organized structure of knowledge I've already built, with guidance toward where or how to look when I need it.",
+      "type": "all",
+      "subparts": [
+        "I seek out information beyond what was provided in class, using guidance on where or how to look when needed, and I cite it appropriately",
+        "I connect that information to something I've already learned — a substantive conceptual link, not just surface similarity"
+      ]
+    },
+    "l2": {
+      "text": "I formulate a real question, independently seek out information beyond what was provided to answer it, evaluate that information for relevance and reliability, and connect it to my current knowledge or use it to answer the question.",
+      "type": "all",
+      "subparts": [
+        "I formulate a specific, answerable question — not just a general topic of interest",
+        "I independently seek out information beyond what was provided in class, without being pointed to a specific source",
+        "I evaluate the information I find for relevance and reliability, rather than accepting the first result",
+        "I connect the result to my current knowledge, or use it to actually answer the question I posed"
+      ]
+    }
+  },
+  {
+    "id": "curiosity",
+    "name": "Curiosity",
+    "color": "#5EAB49",
+    "category": "Disposition",
+    "goal": "Verified",
+    "l1": {
+      "text": "I identify a misconception or gap in my own understanding, and push past it — by experimenting with an idea or generating a precise follow-up question I can then work to answer — rather than just asking for or accepting the answer.",
+      "type": "all",
+      "subparts": [
+        "I can identify a specific misconception or gap in my own understanding",
+        "I push past it through some active means — experimenting with an idea, or generating a precise follow-up question — rather than just asking for or accepting the answer"
+      ]
+    },
+    "l2": {
+      "text": "I show a consistent disposition of genuinely pursuing a \"why\" until I understand the mechanism, not just the outcome, and can explain the process that got me there each time. I can show this through at least three separately identifiable examples across the term that aren't variations of a single instance.",
+      "type": "all",
+      "subparts": [
+        "I can point to at least three separate, genuine instances across the term — not variations of a single instance",
+        "In each instance, my pursuit went deep enough to explain why something happens, not just what happens in more detail",
+        "For each instance, I can explain the actual steps or reasoning that led from the misconception or gap to the mechanism — not just assert that I figured it out or a slightly more detailed restating of the outcome"
+      ]
+    }
+  }
+];
+const CATEGORIES = ["Discovery","Structure","Disposition","Interface","Implementation"];
+const GOALS = ["Foundational","Verified","Deliberate","Maintainable"];
+const CATEGORY_COLORS = {"Discovery":"#B24242","Structure":"#CA6A32","Disposition":"#5EAB49","Interface":"#5AA1A5","Implementation":"#7D5F99"};
+const GOAL_COLORS = {"Foundational":"#F5F3ED","Deliberate":"#ECE8E1","Maintainable":"#E8E7E6","Verified":"#E9ECEE"};
+
+let activeCats = new Set(CATEGORIES);
+let activeGoals = new Set(GOALS);
+let searchTerm = "";
+let groupBy = "category";
+let expandedIds = new Set();
+let subpartShown = new Set(); // keys like "id-l1" / "id-l2"
+
+function renderPills() {
+  const catEl = document.getElementById("catPills");
+  catEl.innerHTML = CATEGORIES.map(c =>
+    `<div class="pill cat-pill ${activeCats.has(c) ? 'active' : ''}" style="--pill-color:${CATEGORY_COLORS[c]}" data-cat="${c}">${c}</div>`
+  ).join("");
+  catEl.querySelectorAll(".pill").forEach(p => p.addEventListener("click", () => {
+    const c = p.dataset.cat;
+    if (activeCats.has(c)) activeCats.delete(c); else activeCats.add(c);
+    renderPills(); render();
+  }));
+
+  const goalEl = document.getElementById("goalPills");
+  goalEl.innerHTML = GOALS.map(g =>
+    `<div class="pill goal-pill ${activeGoals.has(g) ? 'active' : ''}" style="--pill-color:${GOAL_COLORS[g]}" data-goal="${g}">${g}</div>`
+  ).join("");
+  goalEl.querySelectorAll(".pill").forEach(p => p.addEventListener("click", () => {
+    const g = p.dataset.goal;
+    if (activeGoals.has(g)) activeGoals.delete(g); else activeGoals.add(g);
+    renderPills(); render();
+  }));
+}
+
+function levelHTML(skill, levelKey, level) {
+  if (level.type === "multipart") {
+    const partsBody = level.parts.map(p => {
+      const subKey = skill.id + "-" + levelKey + "-" + p.label;
+      const shown = subpartShown.has(subKey);
+      return `
+        <div class="part-block">
+          <div class="level-text"><span class="part-label">${p.label}:</span> ${p.text}</div>
+          <div class="subpart-toggle" data-subkey="${subKey}">${shown ? "Hide" : "Show"} sub-parts</div>
+          <div class="subparts ${shown ? 'shown' : ''}" data-subkey-body="${subKey}">
+            <ol type="a">${p.subparts.map(s => `<li>${s}</li>`).join("")}</ol>
+          </div>
+        </div>
+      `;
+    }).join("");
+    return `
+      <div class="level-block">
+        <div class="level-label" style="color:${skill.color}">${levelKey.toUpperCase()}</div>
+        ${partsBody}
+      </div>
+    `;
+  }
+
+  const subKey = skill.id + "-" + levelKey;
+  const hasSubparts = level.type === "all" ? level.subparts.length > 0
+    : level.type === "conditional" ? level.subparts.length > 0
+    : level.type === "paths" ? level.paths.length > 0
+    : false;
+  const shown = subpartShown.has(subKey);
+
+  let subBody = "";
+  if (level.type === "all") {
+    subBody = "<ol type='a'>" + level.subparts.map(s => `<li>${s}</li>`).join("") + "</ol>";
+  } else if (level.type === "conditional") {
+    subBody = "<ol type='a'>" + level.subparts.map(s =>
+      s.label ? `<li><span class="cond-label">${s.label}</span> ${s.text}</li>` : `<li>${s.text}</li>`
+    ).join("") + "</ol>";
+  } else if (level.type === "paths") {
+    subBody = level.paths.map(p => {
+      if (p.single) {
+        return `<div class="path-block"><div class="path-label">${p.label}</div><ol type='a'><li>${p.single}</li></ol></div>`;
+      } else {
+        return `<div class="path-block"><div class="path-label">${p.label}</div><ol type='a'>${p.items.map(i => `<li>${i}</li>`).join("")}</ol></div>`;
+      }
+    }).join("");
+  }
+
+  return `
+    <div class="level-block">
+      <div class="level-label" style="color:${skill.color}">${levelKey.toUpperCase()}</div>
+      <div class="level-text">${level.text}</div>
+      ${hasSubparts ? `<div class="subpart-toggle" data-subkey="${subKey}">${shown ? "Hide" : "Show"} sub-parts</div>
+      <div class="subparts ${shown ? 'shown' : ''}" data-subkey-body="${subKey}">${subBody}</div>` : ""}
+    </div>
+  `;
+}
+
+function skillCard(skill) {
+  const expanded = expandedIds.has(skill.id);
+  return `
+    <div class="skill-card ${expanded ? 'expanded' : ''}" style="border-left-color:${skill.color}" data-id="${skill.id}">
+      <div class="skill-header" data-toggle="${skill.id}">
+        <div>
+          <div class="skill-name" style="color:${skill.color}">${skill.name}</div>
+          <div class="skill-tags"><span class="tag">${skill.category}</span><span class="tag">${skill.goal}</span></div>
+        </div>
+        <div class="chevron">&#9656;</div>
+      </div>
+      <div class="skill-body">
+        ${levelHTML(skill, "l1", skill.l1)}
+        ${levelHTML(skill, "l2", skill.l2)}
+      </div>
+    </div>
+  `;
+}
+
+function matches(skill) {
+  if (!activeCats.has(skill.category)) return false;
+  if (!activeGoals.has(skill.goal)) return false;
+  if (searchTerm && !skill.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+  return true;
+}
+
+function render() {
+  const filtered = SKILLS.filter(matches);
+  const main = document.getElementById("main");
+
+  if (filtered.length === 0) {
+    main.innerHTML = '<div id="empty-msg">No skills match your filters.</div>';
+    attachCardListeners();
+    return;
+  }
+
+  if (groupBy === "alpha") {
+    const sorted = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+    main.innerHTML = sorted.map(skillCard).join("");
+  } else if (groupBy === "goal") {
+    let html = "";
+    GOALS.forEach(g => {
+      const group = filtered.filter(s => s.goal === g);
+      if (group.length === 0) return;
+      html += `<div class="section-header goal-header" style="background:${GOAL_COLORS[g]}">${g}</div>`;
+      html += group.map(skillCard).join("");
+    });
+    main.innerHTML = html;
+  } else {
+    let html = "";
+    CATEGORIES.forEach(c => {
+      const group = filtered.filter(s => s.category === c);
+      if (group.length === 0) return;
+      html += `<div class="section-header cat-header" style="background:${CATEGORY_COLORS[c]}">${c}</div>`;
+      html += group.map(skillCard).join("");
+    });
+    main.innerHTML = html;
+  }
+  attachCardListeners();
+}
+
+function attachCardListeners() {
+  document.querySelectorAll("[data-toggle]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = el.dataset.toggle;
+      if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+      render();
+    });
+  });
+  document.querySelectorAll(".subpart-toggle").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const key = el.dataset.subkey;
+      if (subpartShown.has(key)) subpartShown.delete(key); else subpartShown.add(key);
+      render();
+    });
+  });
+}
+
+document.getElementById("search").addEventListener("input", e => { searchTerm = e.target.value; render(); });
+document.getElementById("groupBy").addEventListener("change", e => { groupBy = e.target.value; render(); });
+document.getElementById("expandAll").addEventListener("click", () => { SKILLS.forEach(s => expandedIds.add(s.id)); render(); });
+document.getElementById("collapseAll").addEventListener("click", () => { expandedIds.clear(); render(); });
+
+renderPills();
+render();
+</script>
+</body>
+</html>
