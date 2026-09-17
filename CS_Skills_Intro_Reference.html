@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Skills — Quick Reference</title>
+<style>
+  :root { --accent: #406B99; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f7f7f8; color: #1a1a1a;
+  }
+  header {
+    background: var(--accent); color: white; padding: 24px 20px 20px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; font-size: 14px; opacity: 0.9; }
+
+  .controls {
+    background: white; padding: 16px 20px; border-bottom: 1px solid #e0e0e0;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  #search {
+    flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 8px;
+    font-size: 15px;
+  }
+  .filter-group { margin-bottom: 10px; }
+  .filter-label { font-size: 12px; color: #666; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    padding: 6px 12px; border-radius: 999px; border: 1.5px solid #ccc; background: white;
+    font-size: 13px; cursor: pointer; user-select: none; transition: all 0.15s; font-weight: 600;
+  }
+  .pill.tl-pill { border-color: var(--pill-color, #ccc); color: var(--pill-color, #555); }
+  .pill.tl-pill.active { background: var(--pill-color, #ccc); color: white; }
+  .group-select { margin-top: 10px; }
+  .group-select select {
+    padding: 8px 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 13px;
+  }
+
+  main { padding: 16px 20px 60px; max-width: 800px; margin: 0 auto; }
+  .section-header {
+    font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+    text-transform: uppercase; padding: 10px 14px; border-radius: 8px; margin: 22px 0 12px;
+    color: white;
+  }
+  .skill-card {
+    background: white; border-radius: 10px; margin-bottom: 14px; overflow: hidden;
+    border-left: 5px solid #ccc; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .skill-header {
+    padding: 14px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  }
+  .skill-name { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+  .match-note { font-size: 11.5px; font-style: italic; color: #888; margin-bottom: 6px; }
+  .skill-def { font-size: 14.5px; line-height: 1.5; color: #2a2a2a; }
+  .skill-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #eee; color: #555; white-space: nowrap; }
+  .further-toggle {
+    font-size: 12.5px; color: var(--accent); cursor: pointer; user-select: none; font-weight: 600;
+    display: inline-block; margin: 10px 16px 0;
+  }
+  .further-toggle .chevron { display: inline-block; transition: transform 0.2s; margin-right: 4px; }
+  .skill-card.expanded .further-toggle .chevron { transform: rotate(90deg); }
+  .further-body { display: none; padding: 8px 16px 16px; }
+  .skill-card.expanded .further-body { display: block; }
+  .further-label { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: #888; margin-bottom: 4px; }
+  .further-def { font-size: 14px; line-height: 1.5; color: #333; }
+  #empty-msg { text-align: center; color: #888; padding: 40px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CS Skills — Quick Reference</h1>
+  <p>Search or filter to find a skill. Tap "Going further" to see the stretch version.</p>
+</header>
+
+<div class="controls">
+  <div class="search-row">
+    <input id="search" type="text" placeholder="Search by skill name or keyword...">
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">Throughline</div>
+    <div class="pills" id="tlPills"></div>
+  </div>
+  <div class="group-select">
+    <label class="filter-label" for="groupBy">Sort by</label><br>
+    <select id="groupBy">
+      <option value="throughline">Throughline</option>
+      <option value="alpha">Alphabetical</option>
+    </select>
+  </div>
+</div>
+
+<main id="main"></main>
+
+<script>
+const SKILLS = [
+  {
+    "id": "speaking-in-translations",
+    "name": "Speaking in Translations",
+    "throughline": "Human Communication",
+    "l1": "Gauging what a listener already knows, adjusting vocabulary and complexity accordingly, and noticing and adapting in the moment when they're confused.",
+    "l2": "Tailoring genuinely distinct explanations to different audiences, and explaining the specific choices made to avoid or respond to a listener's confusion."
+  },
+  {
+    "id": "writing",
+    "name": "Writing",
+    "throughline": "Human Communication",
+    "l1": "Clearly and accurately explaining your work — including your reasoning, real limitations, and how it functions — so it stands on its own for a reader who's never seen it.",
+    "l2": "Writing with clarity and deliberate structure that anticipates a reader's likely confusion, revising in response to feedback in ways that meaningfully improve the work, and offering substantive critique on a peer's similar writing."
+  },
+  {
+    "id": "collaboration",
+    "name": "Collaboration",
+    "throughline": "Human Communication",
+    "l1": "Actively contributing to pair and group work, giving partners specific feedback that reflects real understanding of their work, and appropriately responding to feedback received — either by applying it or by explaining why it doesn't apply.",
+    "l2": "Adjusting how work is organized, divided, or approached in a live pair or group setting based on what the situation calls for, and making a meaningful change to your own approach based on peer feedback."
+  },
+  {
+    "id": "writing-code",
+    "name": "Writing Code",
+    "throughline": "Working with Code",
+    "l1": "Adapting a pattern or approach shown in class to correctly solve a given problem, formatted to class standards — with the ability to explain what the code does and how it was adapted.",
+    "l2": "Using established practices to build a solution that goes beyond adapting a single seen pattern, justifying a choice between multiple working approaches based on efficiency, clarity, or another clear trade-off — and explaining the reasoning behind any part of the code."
+  },
+  {
+    "id": "refactoring-code",
+    "name": "Refactoring Code",
+    "throughline": "Working with Code",
+    "l1": "Reorganizing code to resolve a clear complexity, duplication, or readability problem without changing what it does, and explaining how the new structure improves on the old one.",
+    "l2": "Independently identifying structural weaknesses that go beyond readability — extensibility, modularity, or abstraction — and restructuring to resolve them while preserving behavior and keeping what already worked."
+  },
+  {
+    "id": "testing-code",
+    "name": "Testing Code",
+    "throughline": "Working with Code",
+    "l1": "Identifying what code is supposed to do, checking it against the major paths a program is meant to handle under normal use, and explaining why each check passes or fails.",
+    "l2": "Designing a set of checks that anticipates where code is likely to fail before running into those issues by accident, and explaining how that set of checks, together, covers the range of potential problems."
+  },
+  {
+    "id": "edo",
+    "name": "Experimental Design and Observation",
+    "throughline": "Research and Design",
+    "l1": "Interpreting the results of a structured experiment or an error message to draw a basic, reasonable conclusion about what's happening in code.",
+    "l2": "Independently forming a real question about your own code, designing an investigation to answer it, and using what one round of investigation reveals to shape the next."
+  },
+  {
+    "id": "intentional-design",
+    "name": "Intentional Design",
+    "throughline": "Research and Design",
+    "l1": "Identifying a real audience or stakeholder for a piece of work, translating their need into concrete requirements, and designing with their context in mind.",
+    "l2": "Gathering input directly from an audience or stakeholder rather than assuming their needs, designing explicitly for accessibility across that audience, and reflecting honestly on where the final work fell short."
+  },
+  {
+    "id": "cosc",
+    "name": "Citizenship in the Open-Source Community",
+    "throughline": "Research and Design",
+    "l1": "Writing documentation clear enough that someone else could understand and use your work without asking you, and correctly using and attributing outside code, libraries, or sourced material — explaining both what it does and why you used it.",
+    "l2": "Writing documentation that stays useful even after the current context is gone — capturing the reasoning behind decisions, known limitations, and likely points of future breakage — and, when more than one viable outside resource exists, weighing the options and justifying the one chosen."
+  },
+  {
+    "id": "exploration-research",
+    "name": "Exploration and Research",
+    "throughline": "Asking Questions",
+    "l1": "Seeking out information beyond what was provided and connecting it to the knowledge already built, using guidance on where or how to look.",
+    "l2": "Formulating a real question, independently seeking out information to answer it, evaluating that information for relevance and reliability, and connecting it back to existing knowledge."
+  },
+  {
+    "id": "curiosity",
+    "name": "Curiosity",
+    "throughline": "Asking Questions",
+    "l1": "Identifying a misconception or gap in your own understanding and pushing past it — by experimenting with an idea or forming a precise follow-up question — rather than simply accepting an answer.",
+    "l2": "Consistently pursuing the \"why\" behind something until the underlying mechanism is understood, not just the outcome, across multiple genuine instances."
+  },
+  {
+    "id": "questioning-impact",
+    "name": "Questioning Impact",
+    "throughline": "Asking Questions",
+    "l1": "Identifying specific groups who could be affected by a piece of work or technology, considering plausible ways it could help or harm them, and noticing whose perspective is missing.",
+    "l2": "Seeking out firsthand perspective on a work's potential impact, inviting missing voices into the process, and identifying and addressing a harmful aspect of the work based on what's learned."
+  },
+  {
+    "id": "understanding-systems",
+    "name": "Understanding Systems",
+    "throughline": "Working with Systems",
+    "l1": "Identifying the main parts of a system you didn't build and the relationships between them, and recognizing when an issue or effect reflects how those parts depend on or affect one another — tracing the connection between cause and effect within the system.",
+    "l2": "Breaking down a system that wasn't built by you into its parts and relationships completely and accurately — including connections that aren't immediately obvious — and predicting or explaining a downstream effect based on how the system fits into a larger whole."
+  },
+  {
+    "id": "designing-systems",
+    "name": "Designing Systems",
+    "throughline": "Working with Systems",
+    "l1": "Creating an organized structure for a solution — its parts and how they connect — grounded in reasoning about why that structure fits the problem, and making the plan legible to someone else.",
+    "l2": "Creating a structure for a solution with future change or reuse in mind, weighing more than one structural approach before choosing, and explaining the reasoning behind how the parts connect."
+  },
+  {
+    "id": "tooling",
+    "name": "Tooling",
+    "throughline": "Working with Systems",
+    "l1": "Recognizing whether a current setup or workflow fits the task at hand, and adjusting it — or explaining why it already fits — when it doesn't.",
+    "l2": "Engaging with a tool or workflow's deeper capabilities rather than its most basic function, in a way that makes the work meaningfully more effective."
+  }
+];
+
+const THROUGHLINES = ["Human Communication","Working with Code","Research and Design","Asking Questions","Working with Systems"];
+const TL_COLORS = {
+  "Human Communication": "#5AA1A5",
+  "Working with Code": "#7D5F99",
+  "Research and Design": "#5EAB49",
+  "Asking Questions": "#B24242",
+  "Working with Systems": "#CA6A32"
+};
+
+let activeTLs = new Set(THROUGHLINES);
+let searchTerm = "";
+let groupBy = "throughline";
+let expandedIds = new Set();
+
+function renderPills() {
+  const tlEl = document.getElementById("tlPills");
+  tlEl.innerHTML = THROUGHLINES.map(t =>
+    `<div class="pill tl-pill ${activeTLs.has(t) ? 'active' : ''}" style="--pill-color:${TL_COLORS[t]}" data-tl="${t}">${t}</div>`
+  ).join("");
+  tlEl.querySelectorAll(".pill").forEach(p => p.addEventListener("click", () => {
+    const t = p.dataset.tl;
+    if (activeTLs.has(t)) activeTLs.delete(t); else activeTLs.add(t);
+    renderPills(); render();
+  }));
+}
+
+function skillCard(skill) {
+  const expanded = expandedIds.has(skill.id);
+  const color = TL_COLORS[skill.throughline];
+  const showMatchNote = searchTerm && !skill.name.toLowerCase().includes(searchTerm.toLowerCase());
+  return `
+    <div class="skill-card ${expanded ? 'expanded' : ''}" style="border-left-color:${color}" data-id="${skill.id}">
+      <div class="skill-header">
+        <div>
+          <div class="skill-name" style="color:${color}">${skill.name}</div>
+          ${showMatchNote ? `<div class="match-note">Matched in definition</div>` : ""}
+          <div class="skill-def">${skill.l1}</div>
+        </div>
+        <div class="skill-tag">${skill.throughline}</div>
+      </div>
+      <div class="further-toggle" data-toggle="${skill.id}"><span class="chevron">&#9656;</span>${expanded ? "Hide" : "Show"} going further</div>
+      <div class="further-body">
+        <div class="further-label">Going further</div>
+        <div class="further-def">${skill.l2}</div>
+      </div>
+    </div>
+  `;
+}
+
+function nameMatches(skill) {
+  return skill.name.toLowerCase().includes(searchTerm.toLowerCase());
+}
+
+function definitionMatches(skill) {
+  const term = searchTerm.toLowerCase();
+  return skill.l1.toLowerCase().includes(term) || skill.l2.toLowerCase().includes(term);
+}
+
+function matches(skill) {
+  if (!activeTLs.has(skill.throughline)) return false;
+  if (searchTerm && !(nameMatches(skill) || definitionMatches(skill))) return false;
+  return true;
+}
+
+// When searching, name matches sort ahead of definition-only matches within
+// whatever grouping/ordering is otherwise in effect.
+function searchRank(skill) {
+  if (!searchTerm) return 0;
+  return nameMatches(skill) ? 0 : 1;
+}
+
+function render() {
+  const filtered = SKILLS.filter(matches);
+  const main = document.getElementById("main");
+
+  if (filtered.length === 0) {
+    main.innerHTML = '<div id="empty-msg">No skills match your filters.</div>';
+    attachCardListeners();
+    return;
+  }
+
+  if (groupBy === "alpha") {
+    const sorted = [...filtered].sort((a, b) => {
+      const rankDiff = searchRank(a) - searchRank(b);
+      if (rankDiff !== 0) return rankDiff;
+      return a.name.localeCompare(b.name);
+    });
+    main.innerHTML = sorted.map(skillCard).join("");
+  } else {
+    let html = "";
+    THROUGHLINES.forEach(t => {
+      const group = filtered.filter(s => s.throughline === t)
+        .sort((a, b) => searchRank(a) - searchRank(b));
+      if (group.length === 0) return;
+      html += `<div class="section-header" style="background:${TL_COLORS[t]}">${t}</div>`;
+      html += group.map(skillCard).join("");
+    });
+    main.innerHTML = html;
+  }
+  attachCardListeners();
+}
+
+function attachCardListeners() {
+  document.querySelectorAll("[data-toggle]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = el.dataset.toggle;
+      if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+      render();
+    });
+  });
+}
+
+document.getElementById("search").addEventListener("input", e => { searchTerm = e.target.value; render(); });
+document.getElementById("groupBy").addEventListener("change", e => { groupBy = e.target.value; render(); });
+
+renderPills();
+render();
+</script>
+</body>
+</html>
